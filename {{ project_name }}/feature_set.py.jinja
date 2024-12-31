@@ -27,9 +27,6 @@ entity = BaseEntity(
     output_column="id",
     data_type=DataType.STRING
 )
-config = Configuration(host='http://localhost:8083')
-api_client = ApiClient(config)
-# entity.register(api_client=api_client)
 
 table = ExternalTable(
     source=source,
@@ -42,30 +39,28 @@ table = ExternalTable(
     description=""
 )
 
-table.register(api_client)
-
 window = Window(window_type=WindowType.DAY_WINDOW, window_size=7)
 
-feature = BatchEventFeature(
-    name="testing_feature",
-    description="this is description",
-    aggregation=AggregationOperation.COUNT,
-    aggregation_expression="refund_amt",
-    window=window,
-    table=table
+@EventFeature(
+        name="count_user_refunds",
+        description="",
+        entity_restrictions=[],
+        aggregation=AggregationOperation.COUNT,
+        table=table,
+        window=window
 )
+def count_user():
+    return "refund_amt"
 
-feature.register(api_client=api_client)
 
-
-feature_set = FeatureSet(
-    name="sample_feature_set",
-    features=[feature],
-    description="",
-    table=table,
-    sinks=[sink]
+@feature_set(
+    orchestrator="emr",
+    orchestrator_config_path="./config/orchestrator.yml"
 )
-
-# feature_set.compile()
-
-# feature_set.run()
+def sample_feature_set():
+    return FeatureSet(
+        name="{{ project_name }}",
+        features=[count_user],
+        table=None,
+        description="",
+    )
