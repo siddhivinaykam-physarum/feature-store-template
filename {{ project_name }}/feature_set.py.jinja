@@ -1,11 +1,15 @@
-from feature_store_dsl.types.feature import BatchEventFeature, Window, WindowType, Feature
-from feature_store_dsl.types.aggregation import AggregationOperation
-from feature_store_dsl.types.source import ExternalTable, EntityIdColumns, Table
-from feature_store_dsl.io.sources.PostgresSource import PostgresSource
-from feature_store_dsl.types.entity import BaseEntity, DataType, Entity
-from feature_store_dsl.types.feature_set import FeatureSet
+from feature_store_dsl.feature_api.feature_set import FeatureSet
+from feature_store_dsl.feature_api.feature_set_decorators import feature_set
 from feature_store_dsl.io.sinks.PostgresSink import PostgresSink
-from openapi_client import ApiClient, Configuration
+from feature_store_dsl.io.sources.PostgresSource import PostgresSource
+from feature_store_dsl.types.aggregation import AggregationOperation
+from feature_store_dsl.types.entity import BaseEntity
+from feature_store_dsl.types.feature import Window, WindowType
+from feature_store_dsl.types.source import EntityIdColumns, ExternalTable
+from feature_store_dsl.feature_api.feature import EventFeature
+import os
+
+from openapi_client.models.data_type import DataType
 
 
 source = PostgresSource(
@@ -52,15 +56,19 @@ window = Window(window_type=WindowType.DAY_WINDOW, window_size=7)
 def count_user():
     return "refund_amt"
 
+cur_dir = os.getcwd()
 
 @feature_set(
     orchestrator="emr",
-    orchestrator_config_path="./config/orchestrator.yml"
+    orchestrator_config_path=f"{cur_dir}/config/orchestrator.yml"
 )
 def sample_feature_set():
     return FeatureSet(
         name="{{ project_name }}",
         features=[count_user],
-        table=None,
+        table=table,
         description="",
+        sinks=[sink]
     )
+
+sample_feature_set.start()
