@@ -126,7 +126,7 @@ cur_dir = os.path.dirname(os.path.abspath(__file__))
 )
 def sample_feature_set():
     return FeatureSet(
-        name="exmaple-one",  # Feature set name
+        name="{{ project_name }}",  # Feature set name
         features=[count_user, count_returns],  # List of features (using the event feature defined earlier)
         table=table,  # Table used for features (defined earlier)
         description="",  # Description of the feature set
