@@ -24,7 +24,7 @@ _exclude:
   - "*.png"
   - ".ipynb_checkpoints"
   
-  _tasks:
+_tasks:
   - rm -rf __version__.py __init__.py docs/
   - >
     if [ "{{ qa_check }}" != "true" ]; then
