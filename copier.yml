@@ -31,7 +31,7 @@ _tasks:
       rm -rf tests/
     fi
   - git init
-  - echo '#!/bin/sh\n\npython feature_set.py compile\n\n# Add your commands here' > .git/hooks/pre-commit
+  - echo '#!/bin/sh\n\npython ./{{ project_name }}/feature_set.py compile\n\n# Add your commands here' > .git/hooks/pre-commit
   - chmod +x .git/hooks/pre-commit
 
   - git remote add origin "https://gitlab.agile.nat.bt.com/{{ gitlab_remote_location }}/{{ repo_name }}.git" || echo "\n\norigin already added"
