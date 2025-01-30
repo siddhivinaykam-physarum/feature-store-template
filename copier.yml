@@ -31,11 +31,12 @@ _tasks:
       rm -rf tests/
     fi
   - git init
+  - echo '#!/bin/sh\n\necho "Running pre-commit checks..."\n\n# Add your commands here' > .git/hooks/pre-commit
+  - chmod +x .git/hooks/pre-commit
+
   - git remote add origin "https://gitlab.agile.nat.bt.com/{{ gitlab_remote_location }}/{{ repo_name }}.git" || echo "\n\norigin already added"
   - git config --global user.name '{{ author_name }}'
   - git config --global user.email '{{ git_email }}'
-  - pre-commit install
-  - echo "Pre-commit hooks installed successfully."
 
   - echo -e \
       "\n\n\n\n\n\n\n\n\n\n\n\n\nProject initialised!\n\n" \
