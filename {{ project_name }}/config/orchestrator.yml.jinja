@@ -1,84 +1,13 @@
 {% if orchestrator_choice == "EMR" %}
-AWSTemplateFormatVersion: "2010-09-09"
-Description: "Deploy a Spark job on EMR cluster"
+OrchestratorName: emr 
+Region: us-east-1
+ProjectName: emr-deployment-testing-re
+Owner: Abhishek Nain
+Environment: Testing
 
-Parameters:
-  ClusterName:
-    Type: String
-    Default: "SparkCluster"
-    Description: "Name of the EMR cluster"
+EmrReleaseLabel: emr-7.6.0
+MainInstanceType: m5.xlarge
+CoreInstanceType: m5.xlarge
+CoreInstanceCount: 2
 
-  JobFlowRole:
-    Type: String
-    Default: "EMR_EC2_DefaultRole"
-    Description: "The IAM role for the cluster EC2 instances"
-
-  ServiceRole:
-    Type: String
-    Default: "EMR_DefaultRole"
-    Description: "The IAM service role for the EMR cluster"
-
-  InstanceType:
-    Type: String
-    Default: "m5.xlarge"
-    Description: "EC2 instance type for core and master nodes"
-
-  InstanceCount:
-    Type: Number
-    Default: 3
-    Description: "Number of core nodes in the EMR cluster"
-
-  LogUri:
-    Type: String
-    Default: "s3://your-log-bucket/emr-logs/"
-    Description: "S3 bucket URI for EMR logs"
-
-  SparkJobS3Path:
-    Type: String
-    Description: "S3 path to the Spark job JAR or Python script"
-
-Resources:
-  EMRCluster:
-    Type: "AWS::EMR::Cluster"
-    Properties:
-      Name: !Ref ClusterName
-      LogUri: !Ref LogUri
-      ReleaseLabel: "emr-6.9.0" # Specify the EMR release version
-      Applications:
-        - Name: "Spark"
-      Instances:
-        MasterInstanceGroup:
-          InstanceCount: 1
-          InstanceType: !Ref InstanceType
-          Market: "ON_DEMAND"
-        CoreInstanceGroup:
-          InstanceCount: !Ref InstanceCount
-          InstanceType: !Ref InstanceType
-          Market: "ON_DEMAND"
-        Ec2KeyName: "your-ec2-keypair-name" # Specify your EC2 key pair name
-      JobFlowRole: !Ref JobFlowRole
-      ServiceRole: !Ref ServiceRole
-
-  SparkStep:
-    Type: "AWS::EMR::Step"
-    Properties:
-      ClusterId: !Ref EMRCluster
-      Name: "SparkJob"
-      ActionOnFailure: "CONTINUE"
-      HadoopJarStep:
-        Jar: "command-runner.jar"
-        Args:
-          - "spark-submit"
-          - "--deploy-mode"
-          - "cluster"
-          - !Ref SparkJobS3Path
-
-Outputs:
-  ClusterId:
-    Description: "ID of the EMR cluster"
-    Value: !Ref EMRCluster
-
-  SparkStepId:
-    Description: "ID of the Spark job step"
-    Value: !Ref SparkStep
 {% endif %}
