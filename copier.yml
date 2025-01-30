@@ -23,7 +23,8 @@ _exclude:
   - "*.gif"
   - "*.png"
   - ".ipynb_checkpoints"
-_tasks:
+  
+  _tasks:
   - rm -rf __version__.py __init__.py docs/
   - >
     if [ "{{ qa_check }}" != "true" ]; then
@@ -33,6 +34,8 @@ _tasks:
   - git remote add origin "https://gitlab.agile.nat.bt.com/{{ gitlab_remote_location }}/{{ repo_name }}.git" || echo "\n\norigin already added"
   - git config --global user.name '{{ author_name }}'
   - git config --global user.email '{{ git_email }}'
+  - pre-commit install
+  - echo "Pre-commit hooks installed successfully."
 
   - echo -e \
       "\n\n\n\n\n\n\n\n\n\n\n\n\nProject initialised!\n\n" \
@@ -49,6 +52,7 @@ _tasks:
       "1. Quickstart guide:https://www.collab.bt.com/confluence/display/DI/Quickstart \n" \
       "2. Template:https://www.collab.bt.com/confluence/display/DI/Quickstart?src=contextnavpagetreemode \n" \
       "Happy developing :)"
+
 
 # Questions
 project_name:
