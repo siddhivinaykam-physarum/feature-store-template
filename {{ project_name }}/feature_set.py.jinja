@@ -1,7 +1,10 @@
+# Import necessary modules
 from feature_store_dsl.feature_api.feature_set import FeatureSet
 from feature_store_dsl.feature_api.feature_set_decorators import feature_set
 from feature_store_dsl.io.sinks.PostgresSink import PostgresSink
 from feature_store_dsl.io.sources.PostgresSource import PostgresSource
+from feature_store_dsl.io.sources.RedShiftSource import RedshiftSource
+from feature_store_dsl.io.sinks.RedShiftSink import RedshiftSink
 from feature_store_dsl.types.aggregation import AggregationOperation
 from feature_store_dsl.types.entity import BaseEntity
 from feature_store_dsl.types.feature import Window, WindowType
@@ -9,66 +12,126 @@ from feature_store_dsl.types.source import EntityIdColumns, ExternalTable
 from feature_store_dsl.feature_api.feature import EventFeature
 import os
 
+from openapi_client.api_client import ApiClient
+from openapi_client.configuration import Configuration
 from openapi_client.models.data_type import DataType
 
 
-source = PostgresSource(
-    jdbc_url="jdbc:postgresql://localhost:5432/mydb",
-    user="admin",
-    password="secret",
-    tables=""
+# Define the source from PostgreSQL
+postgres_source = PostgresSource(
+    jdbc_url="jdbc:postgresql://localhost:5432/mydb",  # Database connection URL
+    user="admin",  # Username for authentication
+    password="secret",  # Password for authentication
+    tables=[]  # List of tables to be used (empty in this case)
 )
 
-sink = PostgresSink(
-    jdbc_url="jdbc:postgresql://localhost:5432/mydb",
+# Define the source from RedShift
+redshift_source = RedshiftSource(
+    jdbc_url="jdbc:postgresql://localhost:5432/mydb", #Database connection URL
     user="admin",
     password="secret",
-    schema="public"
+    tables=[]
+)
+
+# Define the sink (destination) to store the results in PostgreSQL
+postgres_sink = PostgresSink(
+    jdbc_url="jdbc:postgresql://localhost:5432/mydb",  # Database connection URL
+    user="admin",  # Username for authentication
+    password="secret",  # Password for authentication
+    schema_name="public"  # Schema name in the destination database
+)
+
+# Define the sink (destination) to store the results in RedShift(AWS)
+redshift_sink = RedshiftSink(
+    jdbc_url="jdbc:postgresql://localhost:5432/mydb",  # Database connection URL
+    user="admin",  # Username for authentication
+    password="secret",  # Password for authentication
+    schema_name="public"  # Schema name in the destination database
+)
+
+# Define an entity (here representing a user)
+entity = BaseEntity(
+    name="user_id_updated_re_re",  # Unique name for the entity
+    output_column="id",  # The column to store the output
+    data_type=DataType.STRING  # Data type for the entity, e.g., STRING
+)
+
+# entity.register(ApiClient(configuration=Configuration(host="http://localhost:8083")))
+
+# Define the external table (data source) from PostgreSQL
+table = ExternalTable(
+    source=postgres_source,  # Source of the data (PostgresSource defined earlier)
+    entity_id_columns=[EntityIdColumns(  # Define columns related to entity IDs
+        entity=entity,  # The entity representing a user
+        entity_key_column="purchase_price"  # The column holding the key for the entity
+    )],
+    table_time_semantics=None,  # Specify time semantics if any (not used here)
+    name="checkouts",  # Table name in the data source
+    description=""  # Description of the table
 )
 
 entity = BaseEntity(
-    name="user_id_updated_re_re",
-    output_column="id",
-    data_type=DataType.STRING
+    name="return_id",  # Unique name for the entity
+    output_column="id",  # The column to store the output
+    data_type=DataType.STRING  # Data type for the entity, e.g., STRING
 )
 
-table = ExternalTable(
-    source=source,
-    entity_id_columns=[EntityIdColumns(
-        entity=entity,
-        entity_key_column="purchase_price"
+# Define the external table (data source) from RedShift(AWS)
+table_two = ExternalTable(
+    source=redshift_source,  # Source of the data (PostgresSource defined earlier)
+    entity_id_columns=[EntityIdColumns(  # Define columns related to entity IDs
+        entity=entity,  # The entity representing a user
+        entity_key_column="return_id"  # The column holding the key for the entity
     )],
-    table_time_semantics=None,
-    name="checkouts_updated",
-    description=""
+    table_time_semantics=None,  # Specify time semantics if any (not used here)
+    name="returns",  # Table name in the data source
+    description=""  # Description of the table
 )
 
+# Define a window for aggregation, here using a 7-day window
 window = Window(window_type=WindowType.DAY_WINDOW, window_size=7)
 
+# Define an event feature, which performs aggregation (counting user refunds)
 @EventFeature(
-        name="count_user_refunds",
-        description="",
-        entity_restrictions=[],
-        aggregation=AggregationOperation.COUNT,
-        table=table,
-        window=window
+        name="count_user_refunds",  # Feature name
+        description="",  # Feature description
+        entity_restrictions=[],  # Any restrictions on entities (none here)
+        aggregation=AggregationOperation.SUM,  # Aggregation operation (COUNT)
+        table=table,  # Table to aggregate from (defined earlier)
+        window=window  # Window for the aggregation (7-day window)
 )
 def count_user():
-    return "refund_amt"
+    return "refund_amt"  # Column to aggregate (refund amount)
 
-cur_dir = os.getcwd()
+# Define an event feature, which performs aggregation (counting user refunds)
+@EventFeature(
+        name="count_returns_count",  # Feature name
+        description="",  # Feature description
+        entity_restrictions=[],  # Any restrictions on entities (none here)
+        aggregation=AggregationOperation.COUNT,  # Aggregation operation (COUNT)
+        table=table_two,  # Table to aggregate from (defined earlier)
+        window=window  # Window for the aggregation (7-day window)
+)
+def count_returns():
+    return "count(*)"  # Column to aggregate (refund amount)
 
+# Get the current directory for configuration files
+cur_dir = os.path.dirname(os.path.abspath(__file__))
+
+# Define a feature set, specifying orchestrator details and schedules
 @feature_set(
-    orchestrator="emr",
-    orchestrator_config_path=f"{cur_dir}/config/orchestrator.yml"
+    orchestrator="emr",  # The orchestrator to run the feature set (EMR in this case)
+    orchestrator_config_path=f"{cur_dir}/config/orchestrator.yml",  # Path to the orchestrator configuration
+    schedules=[]  # List of schedules for the feature set (none here)
 )
 def sample_feature_set():
     return FeatureSet(
-        name="{{ project_name }}",
-        features=[count_user],
-        table=table,
-        description="",
-        sinks=[sink]
+        name="exmaple-one",  # Feature set name
+        features=[count_user, count_returns],  # List of features (using the event feature defined earlier)
+        table=table,  # Table used for features (defined earlier)
+        description="",  # Description of the feature set
+        sinks=[postgres_sink, redshift_sink]  # List of sinks to store results (PostgresSink defined earlier)
     )
 
+# Start the feature set process
 sample_feature_set.start()
